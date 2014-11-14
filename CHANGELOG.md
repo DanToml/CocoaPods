@@ -6,6 +6,12 @@ To install release candidates run `[sudo] gem install cocoapods --pre`
 
 ## Master
 
+##### Enhancements
+
+* Show the name of the source for each hook that is run in verbose mode.  
+  [Samuel Giddins](https://github.com/segiddins)
+  [#2639](https://github.com/CocoaPods/CocoaPods/issues/2639)
+
 ##### Bug Fixes
 
 * Show a helpful error message if the old resolver incorrectly activated a
