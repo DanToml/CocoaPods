@@ -1,7 +1,7 @@
 require File.expand_path('../../../spec_helper', __FILE__)
 
 module Pod
-  describe UserProjectIntegrator = Installer::UserProjectIntegrator do
+  describe UserProjectIntegrator = XcodeIntegrationInstaller::UserProjectIntegrator do
     describe 'In general' do
       before do
         @sample_project_path = SpecHelper.create_sample_app_copy_from_fixture('SampleProject')

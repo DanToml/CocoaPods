@@ -46,12 +46,12 @@ end
 #-----------------------------------------------------------------------------#
 
 module Pod
-  describe Installer do
+  describe XcodeIntegrationInstaller do
     before do
       CocoaPodsStats::Sender.any_instance.stubs(:send)
       podfile = generate_podfile
       lockfile = generate_lockfile
-      @installer = Installer.new(config.sandbox, podfile, lockfile)
+      @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
       @installer.installation_options.integrate_targets = false
     end
 
@@ -64,8 +64,8 @@ module Pod
         @installer.stubs(:verify_no_duplicate_framework_names)
         @installer.stubs(:verify_no_static_framework_transitive_dependencies)
         @installer.stubs(:verify_framework_usage)
-        @installer.stubs(:perform_integration_steps)
         @installer.stubs(:generate_pods_project)
+        @installer.stubs(:integrate_user_project)
         @installer.stubs(:run_plugins_post_install_hooks)
         @installer.stubs(:ensure_plugins_are_installed!)
         @installer.stubs(:perform_post_install_actions)
@@ -128,7 +128,7 @@ module Pod
         end
 
         test_source_name = 'https://github.com/artsy/Specs.git'
-        plugins_hash = Installer::DEFAULT_PLUGINS.merge(plugin_name => { 'sources' => [test_source_name] })
+        plugins_hash = XcodeIntegrationInstaller::DEFAULT_PLUGINS.merge(plugin_name => { 'sources' => [test_source_name] })
         @installer.podfile.stubs(:plugins).returns(plugins_hash)
         @installer.unstub(:resolve_dependencies)
         @installer.stubs(:validate_build_configurations)
@@ -136,7 +136,7 @@ module Pod
         @installer.stubs(:ensure_plugins_are_installed!)
         @installer.stubs(:analyze)
 
-        analyzer = Installer::Analyzer.new(config.sandbox, @installer.podfile, @installer.lockfile)
+        analyzer = XcodeIntegrationInstaller::Analyzer.new(config.sandbox, @installer.podfile, @installer.lockfile)
         analyzer.stubs(:analyze)
         @installer.stubs(:create_analyzer).returns(analyzer)
         @installer.install!
@@ -187,7 +187,7 @@ module Pod
 
       describe 'handling CocoaPods version updates' do
         it 'does not deintegrate when there is no lockfile' do
-          installer = Pod::Installer.new(config.sandbox, generate_podfile, nil)
+          installer = Pod::XcodeIntegrationInstaller.new(config.sandbox, generate_podfile, nil)
           UI.expects(:section).never
           installer.send(:deintegrate_if_different_major_version)
         end
@@ -196,7 +196,7 @@ module Pod
           should_not_deintegrate = %w(1.0.0 1.0.1 1.1.0 1.2.2)
           should_not_deintegrate.each do |version|
             lockfile = generate_lockfile(:lockfile_version => version)
-            installer = Pod::Installer.new(config.sandbox, generate_podfile, lockfile)
+            installer = Pod::XcodeIntegrationInstaller.new(config.sandbox, generate_podfile, lockfile)
             Pathname.expects(:glob).never
             installer.send(:deintegrate_if_different_major_version)
           end
@@ -206,7 +206,7 @@ module Pod
           should_not_deintegrate = %w(0.39.0 2.0.0 10.0-beta)
           should_not_deintegrate.each do |version|
             lockfile = generate_lockfile(:lockfile_version => version)
-            installer = Pod::Installer.new(config.sandbox, generate_podfile, lockfile)
+            installer = Pod::XcodeIntegrationInstaller.new(config.sandbox, generate_podfile, lockfile)
             project = fixture('SampleProject/SampleProject.xcodeproj')
             Pathname.expects(:glob).with(config.installation_root + '*.xcodeproj').returns([project])
             Deintegrator.any_instance.expects(:deintegrate_project)
@@ -240,7 +240,7 @@ module Pod
         end
         lockfile = generate_lockfile
 
-        @installer = Installer.new(config.sandbox, podfile, lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
         @installer.installation_options.integrate_targets = false
         @installer.install!
 
@@ -276,7 +276,7 @@ module Pod
         end
         lockfile = generate_lockfile
 
-        @installer = Installer.new(config.sandbox, podfile, lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
         @installer.installation_options.integrate_targets = false
         should.raise(Informative) { @installer.install! }.message.should.match /conflict.*monkey/
       end
@@ -296,7 +296,7 @@ module Pod
         end
         lockfile = generate_lockfile
 
-        @installer = Installer.new(config.sandbox, podfile, lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
         @installer.installation_options.integrate_targets = false
         should.not.raise(Informative) { @installer.install! }
       end
@@ -330,21 +330,21 @@ module Pod
 
       it 'detects transitive static dependencies which are linked directly to the user target' do
         Sandbox::FileAccessor.any_instance.stubs(:vendored_libraries).returns([@lib_thing])
-        @installer = Installer.new(config.sandbox, @podfile, @lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, @podfile, @lockfile)
         should.raise(Informative) { @installer.install! }.message.should.match /transitive.*libThing/
       end
 
       it 'allows transitive static dependencies which contain other source code' do
         Sandbox::FileAccessor.any_instance.stubs(:source_files).returns([@file])
         Sandbox::FileAccessor.any_instance.stubs(:vendored_libraries).returns([@lib_thing])
-        @installer = Installer.new(config.sandbox, @podfile, @lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, @podfile, @lockfile)
         should.not.raise(Informative) { @installer.install! }
       end
 
       it 'allows transitive static dependencies when both dependencies are linked against the user target' do
         PodTarget.any_instance.stubs(:should_build? => false)
         Sandbox::FileAccessor.any_instance.stubs(:vendored_libraries).returns([@lib_thing])
-        @installer = Installer.new(config.sandbox, @podfile, @lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, @podfile, @lockfile)
         should.not.raise(Informative) { @installer.install! }
       end
     end
@@ -364,7 +364,7 @@ module Pod
         end
         lockfile = generate_lockfile
 
-        @installer = Installer.new(config.sandbox, podfile, lockfile)
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
         @installer.installation_options.integrate_targets = false
         should.raise(Informative) { @installer.install! }.message.should.match /use_frameworks/
       end
@@ -408,7 +408,7 @@ module Pod
 
         it 'configures the analyzer to use update mode if appropriate' do
           @installer.update = true
-          Installer::Analyzer.any_instance.expects(:update=).with(true)
+          XcodeIntegrationInstaller::Analyzer.any_instance.expects(:update=).with(true)
           @installer.send(:analyze)
           @installer.aggregate_targets.map(&:name).sort.should == ['Pods-SampleProject', 'Pods-SampleProjectTests']
           @installer.pod_targets.map(&:name).sort.should == ['JSONKit']
@@ -441,9 +441,9 @@ module Pod
 
       describe '#clean_sandbox' do
         before do
-          @analysis_result = Installer::Analyzer::AnalysisResult.new
+          @analysis_result = XcodeIntegrationInstaller::Analyzer::AnalysisResult.new
           @analysis_result.specifications = []
-          @analysis_result.sandbox_state = Installer::Analyzer::SpecsState.new
+          @analysis_result.sandbox_state = XcodeIntegrationInstaller::Analyzer::SpecsState.new
           @pod_targets = [PodTarget.new([stub('Spec')], [fixture_target_definition], config.sandbox)]
           @installer.stubs(:analysis_result).returns(@analysis_result)
           @installer.stubs(:pod_targets).returns(@pod_targets)
@@ -474,7 +474,7 @@ module Pod
           spec_2 = Spec.new
           spec_2.name = 'RestKit'
           @installer.stubs(:root_specs).returns([spec, spec_2])
-          sandbox_state = Installer::Analyzer::SpecsState.new
+          sandbox_state = XcodeIntegrationInstaller::Analyzer::SpecsState.new
           sandbox_state.added << 'BananaLib'
           sandbox_state.changed << 'RestKit'
           @installer.stubs(:sandbox_state).returns(sandbox_state)
@@ -489,7 +489,7 @@ module Pod
           pod_target.stubs(:platform).returns(:ios)
           @installer.stubs(:pod_targets).returns([pod_target])
           @installer.instance_variable_set(:@installed_specs, [])
-          Installer::PodSourceInstaller.any_instance.expects(:install!)
+          XcodeIntegrationInstaller::PodSourceInstaller.any_instance.expects(:install!)
           @installer.send(:install_source_of_pod, 'BananaLib')
         end
 
@@ -499,7 +499,7 @@ module Pod
           pod_target.stubs(:platform).returns(:ios)
           @installer.stubs(:pod_targets).returns([pod_target, pod_target])
           @installer.instance_variable_set(:@installed_specs, [])
-          Installer::PodSourceInstaller.any_instance.stubs(:install!)
+          XcodeIntegrationInstaller::PodSourceInstaller.any_instance.stubs(:install!)
           @installer.send(:install_source_of_pod, 'BananaLib')
           @installer.installed_specs.should == [spec]
         end
@@ -512,7 +512,7 @@ module Pod
           manifest.stubs(:version).with('RestKit').returns('1.0')
           @installer.sandbox.stubs(:manifest).returns(manifest)
           @installer.stubs(:root_specs).returns([spec])
-          sandbox_state = Installer::Analyzer::SpecsState.new
+          sandbox_state = XcodeIntegrationInstaller::Analyzer::SpecsState.new
           sandbox_state.changed << 'RestKit'
           @installer.stubs(:sandbox_state).returns(sandbox_state)
           @installer.expects(:install_source_of_pod).with('RestKit')
@@ -526,7 +526,7 @@ module Pod
           it 'it cleans only if the config instructs to do it' do
             @installer.installation_options.clean = false
             @installer.send(:clean_pod_sources)
-            Installer::PodSourceInstaller.any_instance.expects(:install!).never
+            XcodeIntegrationInstaller::PodSourceInstaller.any_instance.expects(:install!).never
           end
         end
 
@@ -570,7 +570,7 @@ module Pod
 
         it 'preserves Pod paths specified as absolute or rooted to home' do
           local_podfile = generate_local_podfile
-          local_installer = Installer.new(config.sandbox, local_podfile)
+          local_installer = XcodeIntegrationInstaller.new(config.sandbox, local_podfile)
           local_installer.send(:analyze)
           local_installer.send(:prepare_pods_project)
           group = local_installer.pods_project.group_for_spec('Reachability')
@@ -604,7 +604,7 @@ module Pod
       describe '#install_file_references' do
         it 'installs the file references' do
           @installer.stubs(:pod_targets).returns([])
-          Installer::FileReferencesInstaller.any_instance.expects(:install!)
+          XcodeIntegrationInstaller::FileReferencesInstaller.any_instance.expects(:install!)
           @installer.send(:install_file_references)
         end
       end
@@ -620,7 +620,7 @@ module Pod
           pod_target = PodTarget.new([spec], [target_definition], config.sandbox)
           @installer.stubs(:aggregate_targets).returns([])
           @installer.stubs(:pod_targets).returns([pod_target])
-          Installer::PodTargetInstaller.any_instance.expects(:install!)
+          XcodeIntegrationInstaller::PodTargetInstaller.any_instance.expects(:install!)
           @installer.send(:install_libraries)
         end
 
@@ -631,7 +631,7 @@ module Pod
           pod_target = PodTarget.new([spec], [target_definition], config.sandbox)
           @installer.stubs(:aggregate_targets).returns([])
           @installer.stubs(:pod_targets).returns([pod_target])
-          Installer::PodTargetInstaller.any_instance.expects(:install!).once
+          XcodeIntegrationInstaller::PodTargetInstaller.any_instance.expects(:install!).once
           @installer.send(:install_libraries)
         end
 

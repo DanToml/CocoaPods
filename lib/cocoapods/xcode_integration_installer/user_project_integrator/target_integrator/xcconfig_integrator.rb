@@ -1,5 +1,5 @@
 module Pod
-  class Installer
+  class XcodeIntegrationInstaller
     class UserProjectIntegrator
       class TargetIntegrator
         # Configures an user target to use the CocoaPods xcconfigs which allow

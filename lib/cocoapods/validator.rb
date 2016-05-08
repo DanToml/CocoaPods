@@ -368,7 +368,7 @@ module Pod
     def download_pod
       podfile = podfile_from_spec(consumer.platform_name, deployment_target, use_frameworks)
       sandbox = Sandbox.new(config.sandbox_root)
-      @installer = Installer.new(sandbox, podfile)
+      @installer = XcodeIntegrationInstaller.new(sandbox, podfile)
       @installer.use_default_plugins = false
       %i(prepare resolve_dependencies download_dependencies).each { |m| @installer.send(m) }
       @file_accessor = @installer.pod_targets.flat_map(&:file_accessors).find { |fa| fa.spec.name == consumer.spec.name }

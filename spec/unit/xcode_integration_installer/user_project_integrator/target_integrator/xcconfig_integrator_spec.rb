@@ -1,7 +1,7 @@
 require File.expand_path('../../../../../spec_helper', __FILE__)
 
 module Pod
-  describe XCConfigIntegrator = Installer::UserProjectIntegrator::TargetIntegrator::XCConfigIntegrator do
+  describe XCConfigIntegrator = XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::XCConfigIntegrator do
     before do
       project_path = SpecHelper.create_sample_app_copy_from_fixture('SampleProject')
       @project = Xcodeproj::Project.open(project_path)

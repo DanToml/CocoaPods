@@ -44,6 +44,7 @@ module Pod
   autoload :Executable,                'cocoapods/executable'
   autoload :ExternalSources,           'cocoapods/external_sources'
   autoload :Installer,                 'cocoapods/installer'
+  autoload :XcodeIntegrationInstaller, 'cocoapods/xcode_integration_installer'
   autoload :HooksManager,              'cocoapods/hooks_manager'
   autoload :PodTarget,                 'cocoapods/target/pod_target'
   autoload :Project,                   'cocoapods/project'

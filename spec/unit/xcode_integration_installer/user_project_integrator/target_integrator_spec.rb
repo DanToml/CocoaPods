@@ -1,7 +1,7 @@
 require File.expand_path('../../../../spec_helper', __FILE__)
 
 module Pod
-  describe TargetIntegrator = Installer::UserProjectIntegrator::TargetIntegrator do
+  describe TargetIntegrator = XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator do
     describe 'In general' do
       # The project contains a `PBXReferenceProxy` in the build files of the
       # frameworks build phase which implicitly checks for the robustness of
@@ -27,9 +27,9 @@ module Pod
         @target_integrator.private_methods.grep(/^update_to_cocoapods_/).each do |method|
           @target_integrator.stubs(method)
         end
-        @phase_prefix = Installer::UserProjectIntegrator::TargetIntegrator::BUILD_PHASE_PREFIX
+        @phase_prefix = XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::BUILD_PHASE_PREFIX
         @embed_framework_phase_name = @phase_prefix +
-          Installer::UserProjectIntegrator::TargetIntegrator::EMBED_FRAMEWORK_PHASE_NAME
+          XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::EMBED_FRAMEWORK_PHASE_NAME
       end
 
       describe '#integrate!' do
@@ -46,7 +46,7 @@ module Pod
         it 'fixes the copy resource scripts of legacy installations' do
           @target_integrator.integrate!
           target = @target_integrator.send(:native_targets).first
-          phase_name = @phase_prefix + Installer::UserProjectIntegrator::TargetIntegrator::COPY_PODS_RESOURCES_PHASE_NAME
+          phase_name = @phase_prefix + XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::COPY_PODS_RESOURCES_PHASE_NAME
           phase = target.shell_script_build_phases.find { |bp| bp.name == phase_name }
           phase.shell_script = %("${SRCROOT}/../Pods/Pods-resources.sh"\n)
           @target_integrator.integrate!
@@ -84,7 +84,7 @@ module Pod
         it 'adds a Copy Pods Resources build phase to each target' do
           @target_integrator.integrate!
           target = @target_integrator.send(:native_targets).first
-          phase_name = @phase_prefix + Installer::UserProjectIntegrator::TargetIntegrator::COPY_PODS_RESOURCES_PHASE_NAME
+          phase_name = @phase_prefix + XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::COPY_PODS_RESOURCES_PHASE_NAME
           phase = target.shell_script_build_phases.find { |bp| bp.name == phase_name }
           phase.shell_script.strip.should == '"${SRCROOT}/../Pods/Target Support Files/Pods/Pods-resources.sh"'
         end
@@ -92,7 +92,7 @@ module Pod
         it 'adds a Check Manifest.lock build phase to each target' do
           @target_integrator.integrate!
           target = @target_integrator.send(:native_targets).first
-          phase_name = @phase_prefix + Installer::UserProjectIntegrator::TargetIntegrator::CHECK_MANIFEST_PHASE_NAME
+          phase_name = @phase_prefix + XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::CHECK_MANIFEST_PHASE_NAME
           phase = target.shell_script_build_phases.find { |bp| bp.name == phase_name }
           phase.shell_script.should == <<-EOS.strip_heredoc
           diff "${PODS_ROOT}/../Podfile.lock" "${PODS_ROOT}/Manifest.lock" > /dev/null
@@ -109,13 +109,13 @@ module Pod
           @target_integrator.integrate!
           target = @target_integrator.send(:native_targets).first
           target.build_phases.first
-          phase_name = @phase_prefix + Installer::UserProjectIntegrator::TargetIntegrator::CHECK_MANIFEST_PHASE_NAME
+          phase_name = @phase_prefix + XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::CHECK_MANIFEST_PHASE_NAME
           phase = target.build_phases.find { |bp| bp.name == phase_name }
           target.build_phases.first.should.equal? phase
         end
 
         it 'does not perform the integration if there are no targets to integrate' do
-          Installer::UserProjectIntegrator::TargetIntegrator::XCConfigIntegrator.
+          XcodeIntegrationInstaller::UserProjectIntegrator::TargetIntegrator::XCConfigIntegrator.
             integrate(@pod_bundle, @target_integrator.send(:native_targets))
           @target_integrator.stubs(:native_targets).returns([])
           frameworks = @target_integrator.send(:user_project).frameworks_group.children

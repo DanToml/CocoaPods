@@ -109,7 +109,7 @@ module Pod
     # @return [Installer]
     #
     def installer_for_config
-      Installer.new(config.sandbox, config.podfile, config.lockfile)
+      XcodeIntegrationInstaller.new(config.sandbox, config.podfile, config.lockfile)
     end
 
     # Checks that the podfile exists.
