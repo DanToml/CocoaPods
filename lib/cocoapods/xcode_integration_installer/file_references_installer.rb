@@ -1,5 +1,5 @@
 module Pod
-  class Installer
+  class XcodeIntegrationInstaller
     # Controller class responsible of installing the file references of the
     # specifications in the Pods project.
     #

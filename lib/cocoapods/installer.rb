@@ -29,9 +29,7 @@ module Pod
   # source control.
   #
   class Installer
-    autoload :AggregateTargetInstaller,   'cocoapods/installer/target_installer/aggregate_target_installer'
     autoload :Analyzer,                   'cocoapods/installer/analyzer'
-    autoload :FileReferencesInstaller,    'cocoapods/installer/file_references_installer'
     autoload :InstallationOptions,        'cocoapods/installer/installation_options'
     autoload :PostInstallHooksContext,    'cocoapods/installer/post_install_hooks_context'
     autoload :PreInstallHooksContext,     'cocoapods/installer/pre_install_hooks_context'

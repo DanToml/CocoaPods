@@ -1,9 +1,11 @@
 module Pod
   class XcodeIntegrationInstaller
+    autoload :FileReferencesInstaller, 'cocoapods/xcode_integration_installer/file_references_installer'
+    autoload :AggregateTargetInstaller,   'cocoapods/xcode_integration_installer/aggregate_target_installer'
+
     # The {PodsProjectManager} handles configuration of the Pods/Pods.xcodeproj
     #
     class PodsProjectManager
-      autoload :FileReferencesInstaller, 'cocoapods/installer/file_references_installer'
 
       # @return [Pod::Project] the `Pods/Pods.xcodeproj` project.
       #
@@ -31,6 +33,7 @@ module Pod
         install_libraries
         add_system_framework_dependencies
         set_target_dependencies
+        share_development_pod_schemes
       end
 
       def write
@@ -103,12 +106,12 @@ module Pod
       def install_libraries
         UI.message '- Installing targets' do
           pod_targets.sort_by(&:name).each do |pod_target|
-            target_installer = PodTargetInstaller.new(sandbox, pod_target)
+            target_installer = XcodeIntegrationInstaller::PodTargetInstaller.new(sandbox, pod_target)
             target_installer.install!
           end
 
           aggregate_targets.sort_by(&:name).each do |target|
-            target_installer = AggregateTargetInstaller.new(sandbox, target)
+            target_installer = XcodeIntegrationInstaller::AggregateTargetInstaller.new(sandbox, target)
             target_installer.install!
           end
 
@@ -163,6 +166,17 @@ module Pod
           end
         end
       end
+
+      # Shares schemes of development Pods.
+      #     #
+      #         # @return [void]
+      #             #
+      def share_development_pod_schemes
+        development_pod_targets.select(&:should_build?).each do |pod_target|
+          Xcodeproj::XCScheme.share_scheme(pods_project.path, pod_target.label)
+        end
+      end
+
     end
   end
 end

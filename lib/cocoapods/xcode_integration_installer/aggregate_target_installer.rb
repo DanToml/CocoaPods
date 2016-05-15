@@ -1,5 +1,5 @@
 module Pod
-  class Installer
+  class XcodeIntegrationInstaller
     # Creates the targets which aggregate the Pods libraries in the Pods
     # project and the relative support files.
     #

@@ -1,13 +1,13 @@
 require File.expand_path('../../../spec_helper', __FILE__)
 
 module Pod
-  describe Installer::FileReferencesInstaller do
+  describe XcodeIntegrationInstaller::FileReferencesInstaller do
     before do
       @pod_target = fixture_pod_target('banana-lib/BananaLib.podspec')
       @file_accessor = @pod_target.file_accessors.first
       @project = Project.new(config.sandbox.project_path)
       @project.add_pod_group('BananaLib', fixture('banana-lib'))
-      @installer = Installer::FileReferencesInstaller.new(config.sandbox, [@pod_target], @project)
+      @installer = XcodeIntegrationInstaller::FileReferencesInstaller.new(config.sandbox, [@pod_target], @project)
     end
 
     #-------------------------------------------------------------------------#
@@ -98,7 +98,7 @@ module Pod
         project = Project.new(config.sandbox.project_path)
         project.add_pod_group('BananaLib', fixture('banana-lib'))
         project.add_pod_group('monkey', fixture('monkey'))
-        installer = Installer::FileReferencesInstaller.new(config.sandbox, [pod_target_one, pod_target_two], project)
+        installer = XcodeIntegrationInstaller::FileReferencesInstaller.new(config.sandbox, [pod_target_one, pod_target_two], project)
         installer.install!
         headers_root = config.sandbox.public_headers.root
         banana_headers = [headers_root + 'BananaLib/Banana.h', headers_root + 'BananaLib/MoreBanana.h']
@@ -126,7 +126,7 @@ module Pod
         @file_accessor = @pod_target.file_accessors.first
         @project = Project.new(config.sandbox.project_path)
         @project.add_pod_group('BananaLib', fixture('banana-lib'))
-        @installer = Installer::FileReferencesInstaller.new(config.sandbox, [@pod_target], @project)
+        @installer = XcodeIntegrationInstaller::FileReferencesInstaller.new(config.sandbox, [@pod_target], @project)
       end
 
       it "doesn't add file references for localization directories themselves" \
@@ -189,7 +189,7 @@ module Pod
           pod_target_1.file_accessors = [fixture_file_accessor('banana-lib/BananaLib.podspec')]
           pod_target_2 = PodTarget.new([stub('Spec')], [fixture_target_definition], config.sandbox)
           pod_target_2.file_accessors = [fixture_file_accessor('banana-lib/BananaLib.podspec')]
-          installer = Installer::FileReferencesInstaller.new(config.sandbox, [pod_target_1, pod_target_2], @project)
+          installer = XcodeIntegrationInstaller::FileReferencesInstaller.new(config.sandbox, [pod_target_1, pod_target_2], @project)
           roots = installer.send(:file_accessors).map { |fa| fa.path_list.root }
           roots.should == [fixture('banana-lib'), fixture('banana-lib')]
         end
@@ -197,7 +197,7 @@ module Pod
         it 'handles pods without file accessors' do
           pod_target_1 = PodTarget.new([stub('Spec')], [fixture_target_definition], config.sandbox)
           pod_target_1.file_accessors = []
-          installer = Installer::FileReferencesInstaller.new(config.sandbox, [pod_target_1], @project)
+          installer = XcodeIntegrationInstaller::FileReferencesInstaller.new(config.sandbox, [pod_target_1], @project)
           installer.send(:file_accessors).should == []
         end
       end

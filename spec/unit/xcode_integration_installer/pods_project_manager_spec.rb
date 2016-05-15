@@ -29,15 +29,15 @@ end
 module Pod
   describe XcodeIntegrationInstaller::PodsProjectManager do
     describe "Generating Pods Project" do
-      describe "Preparing" do
-        before do
-          podfile = generate_podfile
-          lockfile = generate_lockfile
-          @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
-          @installer.send(:analyze)
-          @manager = @installer.send(:create_project_manager)
-        end
+      before do
+        podfile = generate_podfile
+        lockfile = generate_lockfile
+        @installer = XcodeIntegrationInstaller.new(config.sandbox, podfile, lockfile)
+        @installer.send(:analyze)
+        @manager = @installer.send(:create_project_manager)
+      end
 
+      describe "Preparing" do
         it "creates build configurations for all of the user's targets" do
           @manager.send(:prepare)
           @manager.pods_project.build_configurations.map(&:name).sort.should == ['App Store', 'Debug', 'Release', 'Test']
@@ -110,10 +110,10 @@ module Pod
           target_definition.abstract = false
           target_definition.store_pod('BananaLib')
           pod_target = PodTarget.new([spec], [target_definition], config.sandbox)
-          @installer.stubs(:aggregate_targets).returns([])
-          @installer.stubs(:pod_targets).returns([pod_target])
+          @manager.stubs(:aggregate_targets).returns([])
+          @manager.stubs(:pod_targets).returns([pod_target])
           XcodeIntegrationInstaller::PodTargetInstaller.any_instance.expects(:install!)
-          @installer.send(:install_libraries)
+          @manager.send(:install_libraries)
         end
 
         it 'does not skip empty pod targets' do
@@ -121,16 +121,16 @@ module Pod
           target_definition = Podfile::TargetDefinition.new(:default, nil)
           target_definition.abstract = false
           pod_target = PodTarget.new([spec], [target_definition], config.sandbox)
-          @installer.stubs(:aggregate_targets).returns([])
-          @installer.stubs(:pod_targets).returns([pod_target])
+          @manager.stubs(:aggregate_targets).returns([])
+          @manager.stubs(:pod_targets).returns([pod_target])
           XcodeIntegrationInstaller::PodTargetInstaller.any_instance.expects(:install!).once
-          @installer.send(:install_libraries)
+          @manager.send(:install_libraries)
         end
 
         it 'adds the frameworks required by to the pod to the project for informative purposes' do
           Specification::Consumer.any_instance.stubs(:frameworks).returns(['QuartzCore'])
-          @installer.install!
-          names = @installer.sandbox.project['Frameworks']['iOS'].children.map(&:name)
+          @manager.generate!
+          names = @manager.sandbox.project['Frameworks']['iOS'].children.map(&:name)
           names.sort.should == ['Foundation.framework', 'QuartzCore.framework']
         end
       end
@@ -139,16 +139,16 @@ module Pod
       
       describe '#set_target_dependencies' do
         def test_extension_target(symbol_type)
-          mock_user_target = mock('UserTarget', :symbol_type => symbol_type)
+          mock_user_target = mock('usertarget', :symbol_type => symbol_type)
           @target.stubs(:user_targets).returns([mock_user_target])
 
           build_settings = {}
-          mock_configuration = mock('BuildConfiguration', :build_settings => build_settings)
+          mock_configuration = mock('buildconfiguration', :build_settings => build_settings)
           @mock_target.stubs(:build_configurations).returns([mock_configuration])
 
-          @installer.send(:set_target_dependencies)
+          @manager.send(:set_target_dependencies)
 
-          build_settings.should == { 'APPLICATION_EXTENSION_API_ONLY' => 'YES' }
+          build_settings.should == { 'application_extension_api_only' => 'yes' }
         end
 
         before do
@@ -161,7 +161,7 @@ module Pod
           @mock_target = mock('PodNativeTarget')
 
           mock_project = mock('PodsProject', :frameworks_group => mock('FrameworksGroup'))
-          @installer.stubs(:pods_project).returns(mock_project)
+          @manager.stubs(:pods_project).returns(mock_project)
 
           @target.stubs(:native_target).returns(@mock_target)
           @target.stubs(:pod_targets).returns([@pod_target])
@@ -173,7 +173,7 @@ module Pod
           @pod_target.stubs(:should_build? => false)
           @mock_target.expects(:add_dependency).with('dummy')
 
-          @installer.send(:set_target_dependencies)
+          @manager.send(:set_target_dependencies)
         end
 
         it 'configures APPLICATION_EXTENSION_API_ONLY for app extension targets' do
@@ -201,7 +201,7 @@ module Pod
           mock_configuration = mock('BuildConfiguration', :build_settings => build_settings)
           @mock_target.stubs(:build_configurations).returns([mock_configuration])
 
-          @installer.send(:set_target_dependencies)
+          @manager.send(:set_target_dependencies)
 
           build_settings.should == { 'APPLICATION_EXTENSION_API_ONLY' => 'YES' }
         end
@@ -214,45 +214,45 @@ module Pod
             @target.stubs(:native_target).returns(nil)
             @target.stubs(:pod_targets).returns([])
 
-            @installer.send(:set_target_dependencies)
+            @manager.send(:set_target_dependencies)
           end.should.not.raise NoMethodError
         end
       end
 
       #--------------------------------------#
 
-      describe '#write_pod_project' do
+      describe '#write' do
         before do
-          @installer.stubs(:aggregate_targets).returns([])
-          @installer.stubs(:analysis_result).returns(stub(:all_user_build_configurations => {}, :target_inspections => nil))
-          @installer.send(:prepare_pods_project)
+          @manager.stubs(:aggregate_targets).returns([])
+          @manager.stubs(:analysis_result).returns(stub(:all_user_build_configurations => {}, :target_inspections => nil))
+          @manager.send(:prepare)
         end
 
         it 'recursively sorts the project' do
           Xcodeproj::Project.any_instance.stubs(:recreate_user_schemes)
-          @installer.pods_project.main_group.expects(:sort)
-          @installer.send(:write_pod_project)
+          @manager.pods_project.main_group.expects(:sort)
+          @manager.send(:write)
         end
 
         it 'saves the project to the given path' do
           Xcodeproj::Project.any_instance.stubs(:recreate_user_schemes)
           temporary_directory + 'Pods/Pods.xcodeproj'
-          @installer.pods_project.expects(:save)
-          @installer.send(:write_pod_project)
+          @manager.pods_project.expects(:save)
+          @manager.send(:write)
         end
 
         it 'shares schemes of development pods' do
           spec = fixture_spec('banana-lib/BananaLib.podspec')
           pod_target = fixture_pod_target(spec)
 
-          @installer.stubs(:pod_targets).returns([pod_target])
-          @installer.sandbox.stubs(:development_pods).returns('BananaLib' => nil)
+          @manager.stubs(:pod_targets).returns([pod_target])
+          @manager.sandbox.stubs(:development_pods).returns('BananaLib' => nil)
 
           Xcodeproj::XCScheme.expects(:share_scheme).with(
-            @installer.pods_project.path,
+            @manager.pods_project.path,
             'BananaLib')
 
-          @installer.send(:share_development_pod_schemes)
+          @manager.send(:share_development_pod_schemes)
         end
 
         it "uses the user project's object version for the pods project" do
@@ -263,10 +263,10 @@ module Pod
 
           aggregate_target = AggregateTarget.new(fixture_target_definition, config.sandbox)
           aggregate_target.user_project = proj
-          @installer.stubs(:aggregate_targets).returns([aggregate_target])
+          @manager.stubs(:aggregate_targets).returns([aggregate_target])
 
-          @installer.send(:prepare_pods_project)
-          @installer.pods_project.object_version.should == '1'
+          @manager.send(:prepare)
+          @manager.pods_project.object_version.should == '1'
 
           FileUtils.rm_rf(tmp_directory)
         end
