@@ -7,11 +7,51 @@ module Pod
 
       # @return [Pod::Project] the `Pods/Pods.xcodeproj` project.
       #
-      attr_reader :project
+      attr_reader :pods_project
 
-      def initialize
+      attr_reader :aggregate_targets
+      attr_reader :sandbox
+      attr_reader :pod_targets
+      attr_reader :analysis_result
+      attr_reader :installation_options
+
+      def initialize(aggregate_targets, sandbox, pod_targets, analysis_result, installation_options)
+        @aggregate_targets = aggregate_targets
+        @sandbox = sandbox
+        @pod_targets = pod_targets
+        @analysis_result = analysis_result
+        @installation_options = installation_options
       end
 
+      def generate!
+        prepare
+        install_file_references
+        install_libraries
+        add_system_framework_dependencies
+        set_target_dependencies
+      end
+
+      def write
+        UI.message "- Writing Xcode project file to #{UI.path sandbox.project_path}" do
+          pods_project.pods.remove_from_project if pods_project.pods.empty?
+          pods_project.development_pods.remove_from_project if pods_project.development_pods.empty?
+          pods_project.sort(:groups_position => :below)
+          if installation_options.deterministic_uuids?
+            UI.message('- Generating deterministic UUIDs') { pods_project.predictabilize_uuids }
+          end
+          pods_project.recreate_user_schemes(false)
+          pods_project.save
+        end
+      end
+
+      private
+
+      # Creates the Pods project from scratch if it doesn't exist.
+      #
+      # @return [void]
+      #
+      # @todo   Clean and modify the project if it exists.
+      #
       def prepare
         UI.message '- Creating Pods project' do
           @pods_project = if object_version = aggregate_targets.map(&:user_project).compact.map { |p| p.object_version.to_i }.min
@@ -119,19 +159,6 @@ module Pod
               end
             end
           end
-        end
-      end
-
-      def write
-        UI.message "- Writing Xcode project file to #{UI.path sandbox.project_path}" do
-          pods_project.pods.remove_from_project if pods_project.pods.empty?
-          pods_project.development_pods.remove_from_project if pods_project.development_pods.empty?
-          pods_project.sort(:groups_position => :below)
-          if installation_options.deterministic_uuids?
-            UI.message('- Generating deterministic UUIDs') { pods_project.predictabilize_uuids }
-          end
-          pods_project.recreate_user_schemes(false)
-          pods_project.save
         end
       end
     end

@@ -64,8 +64,6 @@ module Pod
         @installer.stubs(:verify_no_duplicate_framework_names)
         @installer.stubs(:verify_no_static_framework_transitive_dependencies)
         @installer.stubs(:verify_framework_usage)
-        @installer.stubs(:generate_pods_project)
-        @installer.stubs(:integrate_user_project)
         @installer.stubs(:run_plugins_post_install_hooks)
         @installer.stubs(:ensure_plugins_are_installed!)
         @installer.stubs(:perform_post_install_actions)
@@ -86,11 +84,7 @@ module Pod
       end
 
       it 'in runs the post-install hooks before serializing the Pods project' do
-        @installer.stubs(:prepare_pods_project)
         @installer.stubs(:run_podfile_pre_install_hooks)
-        @installer.stubs(:install_file_references)
-        @installer.stubs(:install_libraries)
-        @installer.stubs(:set_target_dependencies)
         @installer.stubs(:write_lockfiles)
         @installer.stubs(:aggregate_targets).returns([])
         @installer.unstub(:generate_pods_project)
@@ -537,70 +531,6 @@ module Pod
     #-------------------------------------------------------------------------#
 
     describe 'Generating pods project' do
-      describe '#prepare_pods_project' do
-        before do
-          @installer.stubs(:aggregate_targets).returns([])
-        end
-
-        it "creates build configurations for all of the user's targets" do
-          @installer.installation_options.integrate_targets = true
-          @installer.send(:analyze)
-          @installer.send(:prepare_pods_project)
-          @installer.pods_project.build_configurations.map(&:name).sort.should == ['App Store', 'Debug', 'Release', 'Test']
-        end
-
-        it 'sets STRIP_INSTALLED_PRODUCT to NO for all configurations for the whole project' do
-          @installer.installation_options.integrate_targets = true
-          @installer.send(:analyze)
-          @installer.send(:prepare_pods_project)
-          @installer.pods_project.build_settings('Debug')['STRIP_INSTALLED_PRODUCT'].should == 'NO'
-          @installer.pods_project.build_settings('Test')['STRIP_INSTALLED_PRODUCT'].should == 'NO'
-          @installer.pods_project.build_settings('Release')['STRIP_INSTALLED_PRODUCT'].should == 'NO'
-          @installer.pods_project.build_settings('App Store')['STRIP_INSTALLED_PRODUCT'].should == 'NO'
-        end
-
-        before do
-          @installer.stubs(:analysis_result).returns(stub(:all_user_build_configurations => {}, :target_inspections => nil))
-        end
-
-        it 'creates the Pods project' do
-          @installer.send(:prepare_pods_project)
-          @installer.pods_project.class.should == Pod::Project
-        end
-
-        it 'preserves Pod paths specified as absolute or rooted to home' do
-          local_podfile = generate_local_podfile
-          local_installer = XcodeIntegrationInstaller.new(config.sandbox, local_podfile)
-          local_installer.send(:analyze)
-          local_installer.send(:prepare_pods_project)
-          group = local_installer.pods_project.group_for_spec('Reachability')
-          Pathname.new(group.path).should.be.absolute
-        end
-
-        it 'adds the Podfile to the Pods project' do
-          config.stubs(:podfile_path).returns(Pathname.new('/Podfile'))
-          @installer.send(:prepare_pods_project)
-          @installer.pods_project['Podfile'].should.be.not.nil
-        end
-
-        it 'sets the deployment target for the whole project' do
-          target_definition_osx = fixture_target_definition('OSX Target', Platform.new(:osx, '10.8'))
-          target_definition_ios = fixture_target_definition('iOS Target', Platform.new(:ios, '6.0'))
-          aggregate_target_osx = AggregateTarget.new(target_definition_osx, config.sandbox)
-          aggregate_target_ios = AggregateTarget.new(target_definition_ios, config.sandbox)
-          @installer.stubs(:aggregate_targets).returns([aggregate_target_osx, aggregate_target_ios])
-          @installer.stubs(:pod_targets).returns([])
-          @installer.send(:prepare_pods_project)
-          build_settings = @installer.pods_project.build_configurations.map(&:build_settings)
-          build_settings.each do |build_setting|
-            build_setting['MACOSX_DEPLOYMENT_TARGET'].should == '10.8'
-            build_setting['IPHONEOS_DEPLOYMENT_TARGET'].should == '6.0'
-          end
-        end
-      end
-
-      #--------------------------------------#
-
       describe '#install_file_references' do
         it 'installs the file references' do
           @installer.stubs(:pod_targets).returns([])
@@ -813,7 +743,7 @@ module Pod
     describe 'Integrating client projects' do
       it 'integrates the client projects' do
         @installer.stubs(:aggregate_targets).returns([AggregateTarget.new(fixture_target_definition, config.sandbox)])
-        Installer::UserProjectIntegrator.any_instance.expects(:integrate!)
+        XcodeIntegrationInstaller::UserProjectIntegrator.any_instance.expects(:integrate!)
         @installer.send(:integrate_user_project)
       end
     end

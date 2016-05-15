@@ -31,6 +31,7 @@ module Pod
   class Installer
     autoload :AggregateTargetInstaller,   'cocoapods/installer/target_installer/aggregate_target_installer'
     autoload :Analyzer,                   'cocoapods/installer/analyzer'
+    autoload :FileReferencesInstaller,    'cocoapods/installer/file_references_installer'
     autoload :InstallationOptions,        'cocoapods/installer/installation_options'
     autoload :PostInstallHooksContext,    'cocoapods/installer/post_install_hooks_context'
     autoload :PreInstallHooksContext,     'cocoapods/installer/pre_install_hooks_context'
@@ -78,7 +79,6 @@ module Pod
     # @return [Hash, Boolean, nil] Pods that have been requested to be
     #         updated or true if all Pods should be updated.
     #         If all Pods should been updated the contents of the Lockfile are
-    #         not taken into account for deciding what Pods to install.
     #
     attr_accessor :update
 
@@ -168,7 +168,7 @@ module Pod
     end
 
     def perform_integration_steps
-      #nop
+      run_plugins_post_install_hooks
     end
 
     #-------------------------------------------------------------------------#
