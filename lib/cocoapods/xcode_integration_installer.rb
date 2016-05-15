@@ -14,14 +14,18 @@ module Pod
       integrate_user_project if installation_options.integrate_targets?
     end
 
+    def create_project_manager
+      PodsProjectManager.new(aggregate_targets, sandbox, pod_targets, analysis_result, installation_options, config)
+    end
+
     private
    
     attr_reader :pods_project_manager
 
     def generate_pods_project
-      @pods_project_manager = PodsProjectManager.new(aggregate_targets, sandbox, pod_targets, analysis_result)
-      @pods_project_manager.generate!
-      @pods_project = project_manager.project
+      @pods_project_manager ||= create_project_manager
+      pods_project_manager.generate!
+      @pods_project = pods_project_manager.project
     end
 
     # Integrates the user projects adding the dependencies on the CocoaPods

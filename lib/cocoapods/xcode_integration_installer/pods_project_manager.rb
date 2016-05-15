@@ -14,13 +14,15 @@ module Pod
       attr_reader :pod_targets
       attr_reader :analysis_result
       attr_reader :installation_options
+      attr_reader :config
 
-      def initialize(aggregate_targets, sandbox, pod_targets, analysis_result, installation_options)
+      def initialize(aggregate_targets, sandbox, pod_targets, analysis_result, installation_options, config)
         @aggregate_targets = aggregate_targets
         @sandbox = sandbox
         @pod_targets = pod_targets
         @analysis_result = analysis_result
         @installation_options = installation_options
+        @config = config
       end
 
       def generate!
