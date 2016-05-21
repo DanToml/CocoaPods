@@ -1,11 +1,11 @@
 module Pod
-  class XcodeIntegrationInstaller
-    autoload :FileReferencesInstaller, 'cocoapods/xcode_integration_installer/file_references_installer'
-    autoload :AggregateTargetInstaller,   'cocoapods/xcode_integration_installer/aggregate_target_installer'
+  class Xcode
+    autoload :FileReferencesInstaller, 'cocoapods/xcode/installer/file_references_installer'
+    autoload :AggregateTargetInstaller,   'cocoapods/xcode/installer/aggregate_target_installer'
 
-    # The {PodsProjectManager} handles configuration of the Pods/Pods.xcodeproj
+    # The {PodsProjectGenerator} handles generation of the 'Pods/Pods.xcodeproj'
     #
-    class PodsProjectManager
+    class PodsProjectGenerator
 
       # @return [Pod::Project] the `Pods/Pods.xcodeproj` project.
       #
@@ -168,15 +168,14 @@ module Pod
       end
 
       # Shares schemes of development Pods.
-      #     #
-      #         # @return [void]
-      #             #
+      #
+      # @return [void]
+      #
       def share_development_pod_schemes
         development_pod_targets.select(&:should_build?).each do |pod_target|
           Xcodeproj::XCScheme.share_scheme(pods_project.path, pod_target.label)
         end
       end
-
     end
   end
 end

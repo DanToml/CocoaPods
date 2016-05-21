@@ -2,9 +2,9 @@ require 'active_support/core_ext/string/inflections'
 require 'fileutils'
 
 module Pod
-  # The Installer is responsible of taking a Podfile and transform it in the
-  # Pods libraries. It also integrates the user project so the Pods
-  # libraries can be used out of the box.
+  # The Installer is responsible of taking a Podfile and transforming it into
+  # a set of dependencies to integrate. Integration should be handled by
+  # subclasses such as {Xcode::Installer}.
   #
   # The Installer is capable of doing incremental updates to an existing Pod
   # installation.
@@ -109,9 +109,6 @@ module Pod
       prepare
       resolve_dependencies
       download_dependencies
-      verify_no_duplicate_framework_names
-      verify_no_static_framework_transitive_dependencies
-      verify_framework_usage
       perform_integration_steps
       write_lockfiles
       perform_post_install_actions
@@ -368,60 +365,6 @@ module Pod
       @pod_installers.each do |installer|
         pod_target = pod_targets.find { |target| target.pod_name == installer.name }
         installer.lock_files!(pod_target.file_accessors)
-      end
-    end
-
-    def verify_no_duplicate_framework_names
-      aggregate_targets.each do |aggregate_target|
-        aggregate_target.user_build_configurations.keys.each do |config|
-          pod_targets = aggregate_target.pod_targets_for_build_configuration(config)
-          vendored_frameworks = pod_targets.flat_map(&:file_accessors).flat_map(&:vendored_frameworks).uniq
-          frameworks = vendored_frameworks.map { |fw| fw.basename('.framework') }
-          frameworks += pod_targets.select { |pt| pt.should_build? && pt.requires_frameworks? }.map(&:product_module_name)
-
-          duplicates = frameworks.group_by { |f| f }.select { |_, v| v.size > 1 }.keys
-          unless duplicates.empty?
-            raise Informative, "The '#{aggregate_target.label}' target has " \
-              "frameworks with conflicting names: #{duplicates.to_sentence}."
-          end
-        end
-      end
-    end
-
-    def verify_no_static_framework_transitive_dependencies
-      aggregate_targets.each do |aggregate_target|
-        next unless aggregate_target.requires_frameworks?
-
-        aggregate_target.user_build_configurations.keys.each do |config|
-          pod_targets = aggregate_target.pod_targets_for_build_configuration(config)
-
-          dependencies = pod_targets.select(&:should_build?).flat_map(&:dependencies)
-          dependended_upon_targets = pod_targets.select { |t| dependencies.include?(t.pod_name) && !t.should_build? }
-
-          static_libs = dependended_upon_targets.flat_map(&:file_accessors).flat_map(&:vendored_static_artifacts)
-          unless static_libs.empty?
-            raise Informative, "The '#{aggregate_target.label}' target has " \
-              "transitive dependencies that include static binaries: (#{static_libs.to_sentence})"
-          end
-        end
-      end
-    end
-
-    def verify_framework_usage
-      aggregate_targets.each do |aggregate_target|
-        next if aggregate_target.requires_frameworks?
-
-        aggregate_target.user_build_configurations.keys.each do |config|
-          pod_targets = aggregate_target.pod_targets_for_build_configuration(config)
-
-          swift_pods = pod_targets.select(&:uses_swift?)
-          unless swift_pods.empty?
-            raise Informative, 'Pods written in Swift can only be integrated as frameworks; ' \
-              'add `use_frameworks!` to your Podfile or target to opt into using it. ' \
-              "The Swift #{swift_pods.size == 1 ? 'Pod being used is' : 'Pods being used are'}: " +
-              swift_pods.map(&:name).to_sentence
-          end
-        end
       end
     end
 
